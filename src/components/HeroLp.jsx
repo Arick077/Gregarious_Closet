@@ -3,7 +3,7 @@ import logo from "../assets/log_trans2.png";
 
 export default function HeroLp() {
   return (
-    <section className="relative flex min-h-[calc(100vh-75px)] w-full items-center bg-[#FAF8F5]">
+    <section id="home" className=" relative flex min-h-[calc(100vh-75px)] w-full items-center bg-[#FAF8F5]">
       <div className="mx-auto grid w-full max-w-[1440px] grid-cols-1 items-center gap-8 px-5 py-12 lg:grid-cols-12">
         
         {/* LEFT COLUMN: Text Content & CTAs */}

@@ -6,7 +6,7 @@ export default function Navbar({}) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="w-full min-h-[75px] bg-[#FFFBEB] flex items-center justify-center py-2 shadow-xl hover:shadow-2xl transition-shadow duration-300 relative z-50">
+    <header className="sticky sticky top-0 z-50 w-full min-h-[75px] bg-[#FFFBEB] flex items-center justify-center py-2 shadow-xl hover:shadow-2xl transition-shadow duration-300 relative z-50">
       
       {/* Container limiting maximum desktop width matching standard layouts */}
       <div className="w-full max-w-[1440px] px-6 flex justify-between items-center">
