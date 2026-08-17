@@ -1,20 +1,17 @@
-import Navbar from "./components/Navbar";
-import HeroLp from "./components/HeroLp";
-import HowItwork from "./components/HowItWork";
-import Features from "./components/Features";
-import Pricing from "./components/Pricing";
-import Footer from "./components/Footer";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import LandingPage from "./pages/LandingPage";
+import AuthPage from "./pages/AuthPage"; // 1. Preloads the AuthPage code
+
 function App() {
   return (
-       <div>
-          <Navbar/>
-          <HeroLp/>
-          <HowItwork/>
-          <Features/>
-          <Pricing/>
-          <Footer/>
-       </div>
+    <BrowserRouter>
+      <Routes>
+        {/* 2. React Router checks the browser URL */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/auth" element={<AuthPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
-export default App
+export default App;

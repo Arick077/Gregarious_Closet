@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import logo from "../assets/logo.png";
 import { Menu, X } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function Navbar({}) {
   const [isOpen, setIsOpen] = useState(false);
@@ -37,7 +38,9 @@ export default function Navbar({}) {
         {/* RIGHT SECTION: Styled User Actions - Desktop */}
         <div className="hidden lg:flex gap-4 items-center">
           <button className="font-italianno text-3xl py-2 px-6 bg-[#C8A96A] rounded-xl hover:bg-[#b59659] transition-colors min-w-[110px]">
-            Login
+            <Link to="/Auth">
+              Login
+            </Link>
           </button>
           <button className="font-italianno text-3xl py-2 px-6 bg-[#C8A96A] rounded-xl hover:bg-[#b59659] transition-colors min-w-[110px]">
             Sign Up
@@ -73,7 +76,9 @@ export default function Navbar({}) {
 
           <div className="flex flex-col gap-3 items-center w-full px-8">
             <button className="w-full font-italianno text-3xl py-2 bg-[#C8A96A] rounded-xl hover:bg-[#b59659] transition-colors">
+            <Link to="/Auth">
               Login
+            </Link>
             </button>
             <button className="w-full font-italianno text-3xl py-2 bg-[#C8A96A] rounded-xl hover:bg-[#b59659] transition-colors">
               Sign Up
