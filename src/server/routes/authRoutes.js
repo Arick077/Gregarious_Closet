@@ -1,14 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const { register, login } = require('../controllers/authController');
+const { register, login, adminSetup } = require('../controllers/authController');
 
-// --- THE SIGNS POINTING TO THE MANAGER ---
+// --- AUTHENTICATION ROUTES ---
 
-// Sign 1: "Want to join? Give us your info here."
+// Public Registration (strictly sets role: 'user')
 router.post('/register', register);
 
-// Sign 2: "Already a member? Show your ID here."
+// Public Login
 router.post('/login', login);
 
-// Put the signs in the main hallway
+// Secret Admin Setup (requires valid adminSecret)
+router.post('/admin-setup', adminSetup);
+
 module.exports = router;

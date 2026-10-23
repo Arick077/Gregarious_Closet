@@ -5,11 +5,12 @@ const bcrypt = require('bcryptjs');
 // --- THE MEMBERSHIP MANAGER'S REGISTER PROCESS ---
 const register = async (req, res) => {
   try {
-    // 1. The customer hands us their filled-out form
-    const { name, email, password } = req.body;
+    // 1. Explicitly destructure ONLY allowed fields to prevent Mass Assignment
+    const { username, name, email, password } = req.body;
+    const finalUsername = username || name;
 
     // 2. Check if they forgot to fill out any fields
-    if (!name || !email || !password) {
+    if (!finalUsername || !email || !password) {
       return res.status(400).json({ message: 'Please provide all required fields' });
     }
 
@@ -23,19 +24,21 @@ const register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 5. Create the official VIP profile using our User Blueprint
+    // 5. Create user - FORCEFULLY set role: 'user' to prevent privilege escalation
     const newUser = new User({
-      name,
+      username: finalUsername,
+      name: finalUsername,
       email,
-      password: hashedPassword
+      password: hashedPassword,
+      role: 'user' // Forcefully set to regular user
     });
 
     // 6. Lock the profile in the database
     await newUser.save();
 
-    // 7. Success! Print their VIP wristband (Token)
+    // 7. Success! Print their VIP wristband (Token) with role included
     const token = jwt.sign(
-      { userId: newUser._id }, 
+      { userId: newUser._id, role: newUser.role }, 
       process.env.JWT_SECRET || 'fallback_secret', 
       { expiresIn: '1d' }
     );
@@ -46,13 +49,14 @@ const register = async (req, res) => {
       token,
       user: {
         id: newUser._id,
-        name: newUser.name,
-        email: newUser.email
+        username: newUser.username || newUser.name,
+        name: newUser.name || newUser.username,
+        email: newUser.email,
+        role: newUser.role
       }
     });
 
   } catch (error) {
-    // If the kitchen catches on fire, tell the customer there's a server error
     console.error('Registration error:', error);
     res.status(500).json({ message: 'Server error during registration' });
   }
@@ -72,7 +76,6 @@ const login = async (req, res) => {
     // 3. Look in the filing cabinet for someone with this email
     const user = await User.findOne({ email });
     if (!user) {
-      // We don't say "Email not found" for security reasons. Keep it vague!
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
@@ -82,9 +85,9 @@ const login = async (req, res) => {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    // 5. Success! Print their VIP wristband (Token). It expires in 1 day.
+    // 5. Success! Print their VIP wristband (Token) with role. It expires in 1 day.
     const token = jwt.sign(
-      { userId: user._id }, 
+      { userId: user._id, role: user.role }, 
       process.env.JWT_SECRET || 'fallback_secret', 
       { expiresIn: '1d' }
     );
@@ -92,11 +95,13 @@ const login = async (req, res) => {
     // 6. Hand the customer their wristband and let them in
     res.status(200).json({
       message: 'Login successful',
-      token, // <-- This is the wristband!
+      token,
       user: {
         id: user._id,
-        name: user.name,
-        email: user.email
+        username: user.username || user.name,
+        name: user.name || user.username,
+        email: user.email,
+        role: user.role
       }
     });
 
@@ -106,5 +111,66 @@ const login = async (req, res) => {
   }
 };
 
-// Put the manager on the counter so other files can use them
-module.exports = { register, login };
+// --- SECRET ADMIN CREATION ROUTE ---
+const adminSetup = async (req, res) => {
+  try {
+    const { adminSecret, username, name, email, password } = req.body;
+
+    // 1. Check adminSecret against process.env.ADMIN_SETUP_SECRET
+    const configuredSecret = process.env.ADMIN_SETUP_SECRET;
+    if (!configuredSecret || !adminSecret || adminSecret !== configuredSecret) {
+      return res.status(403).json({ message: 'Forbidden: Invalid or missing admin setup secret' });
+    }
+
+    const finalUsername = username || name;
+    if (!finalUsername || !email || !password) {
+      return res.status(400).json({ message: 'Please provide username, email, and password' });
+    }
+
+    // 2. Check if email is already taken
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User with this email already exists' });
+    }
+
+    // 3. Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // 4. Create user with role: 'admin'
+    const newAdmin = new User({
+      username: finalUsername,
+      name: finalUsername,
+      email,
+      password: hashedPassword,
+      role: 'admin'
+    });
+
+    await newAdmin.save();
+
+    // 5. Issue token with admin role
+    const token = jwt.sign(
+      { userId: newAdmin._id, role: newAdmin.role },
+      process.env.JWT_SECRET || 'fallback_secret',
+      { expiresIn: '1d' }
+    );
+
+    res.status(201).json({
+      message: 'Admin account created successfully',
+      token,
+      user: {
+        id: newAdmin._id,
+        username: newAdmin.username || newAdmin.name,
+        name: newAdmin.name || newAdmin.username,
+        email: newAdmin.email,
+        role: newAdmin.role
+      }
+    });
+
+  } catch (error) {
+    console.error('Admin setup error:', error);
+    res.status(500).json({ message: 'Server error during admin setup' });
+  }
+};
+
+module.exports = { register, login, adminSetup };

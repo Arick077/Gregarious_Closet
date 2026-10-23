@@ -12,6 +12,16 @@ dist
 dist-ssr
 *.local
 
+# Environment variables & secrets (CRITICAL: Never commit to public or private Git)
+.env
+.env.*
+*.env
+src/server/.env
+
+# Uploaded user files & PDFs
+uploads/
+src/uploads/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

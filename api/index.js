@@ -1,12 +1,20 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 const authRoutes = require('../src/server/routes/authRoutes');
+const bookRoutes = require('../src/server/routes/bookRoutes');
+const adminRoutes = require('../src/server/routes/adminRoutes');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Serve uploaded book files and cover images statically
+const uploadDir = process.env.VERCEL ? path.join('/tmp', 'uploads') : path.resolve(__dirname, '../uploads');
+app.use('/uploads', express.static(uploadDir));
 
 // Serverless-friendly MongoDB connection caching
 let cachedDb = null;
@@ -40,8 +48,10 @@ app.use(async (req, res, next) => {
   }
 });
 
-// Auth endpoints
+// Mount endpoints
 app.use('/api/auth', authRoutes);
+app.use('/api/books', bookRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -54,4 +64,3 @@ app.use('/api', (req, res) => {
 });
 
 module.exports = app;
-
