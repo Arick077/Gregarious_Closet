@@ -3,12 +3,13 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   BookOpen, LogOut, Plus, Sparkles, BookMarked, Compass, Clock, User, 
   Flame, Search, ChevronRight, ChevronLeft, ShieldCheck, Star, BookmarkCheck,
-  Pencil, Trash2, FolderPlus, X, Lock, Globe
+  Pencil, Trash2, FolderPlus, X, Lock, Globe, Target, ChevronDown, ListFilter
 } from 'lucide-react';
 import logo from '../assets/logo.png';
 import BookCard from '../components/BookCard';
 import AdminUploadModal from '../components/AdminUploadModal';
 import EditBookModal from '../components/EditBookModal';
+import ReadingRoadmapModal from '../components/ReadingRoadmapModal';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -20,6 +21,20 @@ export default function DashboardPage() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isRoadmapModalOpen, setIsRoadmapModalOpen] = useState(false);
+  const [roadmapModalTab, setRoadmapModalTab] = useState('list');
+  const [isRoadmapDropdownOpen, setIsRoadmapDropdownOpen] = useState(false);
+  const roadmapDropdownRef = useRef(null);
+
+  const [savedRoadmaps, setSavedRoadmaps] = useState(() => {
+    try {
+      const saved = localStorage.getItem('saved_roadmaps');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [bookToEdit, setBookToEdit] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedBookForView, setSelectedBookForView] = useState(null);
@@ -104,6 +119,17 @@ export default function DashboardPage() {
     fetchTrendingBooks();
     fetchMyBooks();
   }, [navigate]);
+
+  // Click outside listener for Roadmap navbar dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (roadmapDropdownRef.current && !roadmapDropdownRef.current.contains(event.target)) {
+        setIsRoadmapDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Dynamically extract all available categories (defaults + custom + existing books minus removed)
   const defaultCategories = ['Philosophy', 'Productivity', 'History', 'Technology', 'Science', 'Fiction'];
@@ -312,8 +338,88 @@ export default function DashboardPage() {
           </div>
 
           {/* User Controls & Book Upload CTA */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             
+            {/* Reading Roadmap Action Dropdown (Requirement #6 & #14) */}
+            <div className="relative" ref={roadmapDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsRoadmapDropdownOpen(!isRoadmapDropdownOpen)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold shadow-sm transition-all cursor-pointer ${
+                  isRoadmapDropdownOpen
+                    ? 'bg-[#C8A96A] text-black border-[#C8A96A]'
+                    : 'bg-[#202020] hover:bg-[#C8A96A]/15 border-[#C8A96A]/40 text-[#C8A96A] hover:border-[#C8A96A]'
+                }`}
+                title="Create or view reading roadmaps"
+              >
+                <Target size={14} />
+                <span className="hidden md:inline">Roadmap</span>
+                <span className="md:hidden">Plan</span>
+                {savedRoadmaps.length > 0 && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                    isRoadmapDropdownOpen ? 'bg-black/20 text-black' : 'bg-[#C8A96A]/20 text-[#C8A96A]'
+                  }`}>
+                    {savedRoadmaps.length}
+                  </span>
+                )}
+                <ChevronDown size={12} className={`transition-transform duration-200 ${isRoadmapDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Roadmap Dropdown Menu */}
+              {isRoadmapDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[#202020] border border-[#333333] shadow-2xl p-1.5 z-50 animate-fadeIn space-y-1">
+                  
+                  {/* Option 1: Create New Roadmap */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRoadmapDropdownOpen(false);
+                      setRoadmapModalTab('form');
+                      setIsRoadmapModalOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#F7F4EB] hover:bg-[#C8A96A] hover:text-black transition-all cursor-pointer text-left group"
+                  >
+                    <div className="p-1.5 rounded-lg bg-[#C8A96A]/15 text-[#C8A96A] group-hover:bg-black/20 group-hover:text-black shrink-0">
+                      <Plus size={15} />
+                    </div>
+                    <div>
+                      <div className="leading-tight font-bold">Create New Roadmap</div>
+                      <div className="text-[10px] text-[#A0A0A0] group-hover:text-black/80 font-normal">
+                        Cascading subjects & dynamic goals
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Option 2: View Existing Roadmaps */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRoadmapDropdownOpen(false);
+                      setRoadmapModalTab('list');
+                      setIsRoadmapModalOpen(true);
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold text-[#F7F4EB] hover:bg-[#C8A96A] hover:text-black transition-all cursor-pointer text-left group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-1.5 rounded-lg bg-[#8FAE9B]/15 text-[#8FAE9B] group-hover:bg-black/20 group-hover:text-black shrink-0">
+                        <ListFilter size={15} />
+                      </div>
+                      <div>
+                        <div className="leading-tight font-bold">Existing Roadmaps</div>
+                        <div className="text-[10px] text-[#A0A0A0] group-hover:text-black/80 font-normal">
+                          View, edit milestones & progress
+                        </div>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md bg-[#252525] group-hover:bg-black/20 group-hover:text-black text-[#C8A96A] text-[10px] font-bold">
+                      {savedRoadmaps.length}
+                    </span>
+                  </button>
+
+                </div>
+              )}
+            </div>
+
             {/* Universal Upload Button (Accessible to all authenticated users) */}
             <button
               onClick={() => setIsAdminModalOpen(true)}
@@ -441,6 +547,19 @@ export default function DashboardPage() {
                 >
                   <Sparkles size={16} className="text-[#C8A96A]" />
                   <span>AI Tutor Overview</span>
+                </button>
+
+                {/* Reading Roadmap Action Button (Requirement #6 & #14) */}
+                <button
+                  onClick={() => {
+                    setRoadmapModalTab(savedRoadmaps.length > 0 ? 'list' : 'form');
+                    setIsRoadmapModalOpen(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-3 bg-[#202020] hover:bg-[#C8A96A]/20 border border-[#C8A96A]/50 text-[#C8A96A] font-semibold text-xs sm:text-sm rounded-xl backdrop-blur-md transition-all cursor-pointer shadow-md"
+                  title="Create or view structured reading roadmaps"
+                >
+                  <Target size={15} />
+                  <span>Reading Roadmap</span>
                 </button>
 
                 {/* Edit Button for Featured Book (Admin or Owner) */}
@@ -961,6 +1080,14 @@ export default function DashboardPage() {
         onClose={() => setIsEditModalOpen(false)}
         onBookUpdated={handleBookUpdated}
         onBookDeleted={handleBookDeleted}
+      />
+
+      {/* ==================== READING ROADMAP MODAL (REQ #6 & #14) ==================== */}
+      <ReadingRoadmapModal
+        isOpen={isRoadmapModalOpen}
+        initialTab={roadmapModalTab}
+        onClose={() => setIsRoadmapModalOpen(false)}
+        onRoadmapsChanged={(updated) => setSavedRoadmaps(updated)}
       />
 
       {/* ==================== FOOTER ==================== */}
