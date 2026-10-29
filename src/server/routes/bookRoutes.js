@@ -66,15 +66,23 @@ const upload = multer({
  */
 router.get('/trending', async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit, 10) || 20;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = parseInt(req.query.limit, 10) || 100;
+    const skip = (page - 1) * limit;
+
+    const total = await Book.countDocuments({ isPublic: true });
 
     const trendingBooks = await Book.find({ isPublic: true })
       .sort({ averageRating: -1, createdAt: -1 })
+      .skip(skip)
       .limit(limit)
       .populate('uploadedBy', 'username name email role');
 
     res.status(200).json({
       success: true,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit) || 1,
       count: trendingBooks.length,
       books: trendingBooks
     });
@@ -350,6 +358,89 @@ router.delete('/:id', verifyToken, async (req, res) => {
   } catch (error) {
     console.error('Error deleting book:', error);
     res.status(500).json({ message: 'Server error deleting book: ' + error.message });
+  }
+});
+
+/**
+ * POST /api/books/:id/rating
+ * Rate a book 1-5 stars (Requirement #7)
+ */
+router.post('/:id/rating', verifyToken, async (req, res) => {
+  try {
+    const { rating } = req.body;
+    const numRating = Number(rating);
+
+    if (isNaN(numRating) || numRating < 1 || numRating > 5) {
+      return res.status(400).json({ message: 'Rating must be a number between 1 and 5 stars' });
+    }
+
+    const book = await Book.findById(req.params.id);
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+
+    if (!book.ratings) {
+      book.ratings = [];
+    }
+
+    const userIdStr = req.user._id.toString();
+    const existingIndex = book.ratings.findIndex((r) => r.user.toString() === userIdStr);
+
+    if (existingIndex >= 0) {
+      book.ratings[existingIndex].rating = numRating;
+      book.ratings[existingIndex].createdAt = new Date();
+    } else {
+      book.ratings.push({
+        user: req.user._id,
+        rating: numRating,
+        createdAt: new Date()
+      });
+    }
+
+    book.totalRatings = book.ratings.length;
+    const totalScore = book.ratings.reduce((acc, curr) => acc + curr.rating, 0);
+    book.averageRating = Number((totalScore / book.totalRatings).toFixed(1));
+
+    await book.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Rating submitted successfully',
+      averageRating: book.averageRating,
+      totalRatings: book.totalRatings,
+      userRating: numRating
+    });
+
+  } catch (error) {
+    console.error('Error submitting rating:', error);
+    res.status(500).json({ message: 'Server error submitting rating: ' + error.message });
+  }
+});
+
+/**
+ * GET /api/books/:id/rating
+ * Fetch the authenticated user's current rating for this book
+ */
+router.get('/:id/rating', verifyToken, async (req, res) => {
+  try {
+    const book = await Book.findById(req.params.id);
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+
+    const userIdStr = req.user._id.toString();
+    const userRatingObj = book.ratings?.find((r) => r.user.toString() === userIdStr);
+
+    res.status(200).json({
+      success: true,
+      userRating: userRatingObj ? userRatingObj.rating : null,
+      averageRating: book.averageRating || 0,
+      totalRatings: book.totalRatings || 0
+    });
+
+  } catch (error) {
+    console.error('Error fetching user rating:', error);
+    res.status(500).json({ message: 'Server error fetching rating: ' + error.message });
   }
 });
 

@@ -5,6 +5,7 @@ const path = require('path');
 const authRoutes = require('../src/server/routes/authRoutes');
 const bookRoutes = require('../src/server/routes/bookRoutes');
 const adminRoutes = require('../src/server/routes/adminRoutes');
+const commentRoutes = require('../src/server/routes/commentRoutes');
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.use(async (req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api', commentRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -10,6 +10,8 @@ import BookCard from '../components/BookCard';
 import AdminUploadModal from '../components/AdminUploadModal';
 import EditBookModal from '../components/EditBookModal';
 import ReadingRoadmapModal from '../components/ReadingRoadmapModal';
+import StarRating from '../components/StarRating';
+import BookComments from '../components/BookComments';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -39,6 +41,11 @@ export default function DashboardPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedBookForView, setSelectedBookForView] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Library Feed Pagination State
+  const [feedPage, setFeedPage] = useState(1);
+  const [feedLimit, setFeedLimit] = useState(10);
+  const libraryExplorerRef = useRef(null);
 
   // Custom Categories State (Persisted in localStorage)
   const [customCategories, setCustomCategories] = useState(() => {
@@ -225,6 +232,26 @@ export default function DashboardPage() {
     }
   };
 
+  const handleRatingUpdated = (newAverage, newTotal, userRating) => {
+    setSelectedBookForView((prev) => (prev ? {
+      ...prev,
+      averageRating: newAverage,
+      totalRatings: newTotal
+    } : null));
+
+    setTrendingBooks((prev) => prev.map((b) => b._id === selectedBookForView?._id ? {
+      ...b,
+      averageRating: newAverage,
+      totalRatings: newTotal
+    } : b));
+
+    setMyBooks((prev) => prev.map((b) => b._id === selectedBookForView?._id ? {
+      ...b,
+      averageRating: newAverage,
+      totalRatings: newTotal
+    } : b));
+  };
+
   const handleCreateCategory = (e) => {
     e.preventDefault();
     if (!newCategoryInput.trim()) return;
@@ -307,6 +334,25 @@ export default function DashboardPage() {
       (book.author && book.author.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
+
+  // Library Feed Pagination Calculation
+  const totalFeedBooks = filteredBooks.length;
+  const totalFeedPages = Math.ceil(totalFeedBooks / feedLimit) || 1;
+  const safeFeedPage = Math.min(feedPage, totalFeedPages);
+  const feedStartIndex = (safeFeedPage - 1) * feedLimit;
+  const paginatedFeedBooks = filteredBooks.slice(feedStartIndex, feedStartIndex + feedLimit);
+
+  // Reset page when category or search changes
+  useEffect(() => {
+    setFeedPage(1);
+  }, [selectedCategory, searchQuery, feedLimit]);
+
+  const handleFeedPageChange = (newPage) => {
+    setFeedPage(newPage);
+    if (libraryExplorerRef.current) {
+      libraryExplorerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   const isAdmin = currentUser?.role === 'admin';
 
@@ -475,6 +521,10 @@ export default function DashboardPage() {
                 src={featuredBook.coverImage || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=1200'}
                 alt={featuredBook.title}
                 className="w-full h-full object-cover object-center filter brightness-40 blur-[1px] transform scale-105 transition-all duration-1000 ease-in-out"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=1200';
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/75 to-transparent" />
               <div className="absolute inset-0 bg-gradient-to-r from-[#141414] via-[#141414]/85 to-transparent" />
@@ -732,7 +782,7 @@ export default function DashboardPage() {
         </section>
 
         {/* 4. CATEGORY EXPLORER & SEARCH SECTION */}
-        <section className="space-y-6 pt-4 border-t border-[#292929]">
+        <section ref={libraryExplorerRef} className="space-y-6 pt-4 border-t border-[#292929]">
           
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -808,9 +858,9 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Books Grid */}
+          {/* Books Grid with Paginated Feed */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
-            {filteredBooks.map((book) => (
+            {paginatedFeedBooks.map((book) => (
               <BookCard
                 key={book._id}
                 book={book}
@@ -821,6 +871,85 @@ export default function DashboardPage() {
               />
             ))}
           </div>
+
+          {/* Library Feed Pagination Controls */}
+          {totalFeedBooks > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-[#292929] text-xs text-[#A0A0A0]">
+              {/* Range & Per Page Controls */}
+              <div className="flex flex-wrap items-center gap-3">
+                <span>
+                  Showing <strong className="text-[#F7F4EB]">{totalFeedBooks > 0 ? feedStartIndex + 1 : 0}</strong>–
+                  <strong className="text-[#F7F4EB]">{Math.min(feedStartIndex + feedLimit, totalFeedBooks)}</strong> of{' '}
+                  <strong className="text-[#F7F4EB]">{totalFeedBooks}</strong> {totalFeedBooks === 1 ? 'book' : 'books'}
+                </span>
+
+                <div className="flex items-center gap-1.5 pl-3 border-l border-[#333333]">
+                  <span className="text-[11px] text-[#777777]">Per page:</span>
+                  {[5, 10, 15, 20].map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => {
+                        setFeedLimit(option);
+                        setFeedPage(1);
+                      }}
+                      className={`px-2 py-0.5 rounded-md text-xs font-semibold cursor-pointer transition-colors ${
+                        feedLimit === option
+                          ? 'bg-[#C8A96A] text-black shadow'
+                          : 'bg-[#202020] hover:bg-[#2c2c2c] text-[#888888] hover:text-[#F7F4EB]'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Page Numbers & Prev/Next */}
+              {totalFeedPages > 1 && (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={safeFeedPage <= 1}
+                    onClick={() => handleFeedPageChange(safeFeedPage - 1)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#202020] hover:bg-[#2d2d2d] disabled:opacity-30 disabled:cursor-not-allowed text-[#F7F4EB] font-medium transition-colors cursor-pointer"
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft size={14} />
+                    <span>Prev</span>
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalFeedPages }, (_, i) => i + 1).map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        type="button"
+                        onClick={() => handleFeedPageChange(pageNum)}
+                        className={`w-7 h-7 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
+                          safeFeedPage === pageNum
+                            ? 'bg-[#C8A96A] text-black shadow-lg font-bold'
+                            : 'bg-[#202020] hover:bg-[#2c2c2c] text-[#A0A0A0] hover:text-[#F7F4EB]'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={safeFeedPage >= totalFeedPages}
+                    onClick={() => handleFeedPageChange(safeFeedPage + 1)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#202020] hover:bg-[#2d2d2d] disabled:opacity-30 disabled:cursor-not-allowed text-[#F7F4EB] font-medium transition-colors cursor-pointer"
+                    aria-label="Next page"
+                  >
+                    <span>Next</span>
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {filteredBooks.length === 0 && (
             <div className="p-12 text-center rounded-2xl border border-dashed border-[#333333] bg-[#1c1c1c]/50">
@@ -947,23 +1076,37 @@ export default function DashboardPage() {
 
       {/* ==================== BOOK DETAIL MODAL ==================== */}
       {selectedBookForView && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="relative w-full max-w-2xl bg-[#1e1e1e] border border-[#333333] rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col sm:flex-row gap-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-3xl bg-[#1e1e1e] border border-[#333333] rounded-3xl p-5 sm:p-8 shadow-2xl max-h-[92vh] overflow-y-auto">
             
-            {/* Book Cover */}
-            <div className="w-full sm:w-48 shrink-0 aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl border border-white/10">
-              <img
-                src={selectedBookForView.coverImage || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=600'}
-                alt={selectedBookForView.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
+            {/* Top Close Button */}
+            <button
+              onClick={() => setSelectedBookForView(null)}
+              className="absolute top-5 right-5 text-[#888888] hover:text-[#F7F4EB] bg-[#282828] hover:bg-[#333333] w-8 h-8 rounded-full flex items-center justify-center text-sm transition-all cursor-pointer z-10"
+              aria-label="Close modal"
+            >
+              ✕
+            </button>
 
-            {/* Book Info & Action */}
-            <div className="flex-1 flex flex-col justify-between space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
+            {/* Book Info Top Grid */}
+            <div className="flex flex-col sm:flex-row gap-6">
+              {/* Book Cover */}
+              <div className="w-full sm:w-44 shrink-0 aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl border border-white/10 mx-auto sm:mx-0 max-w-[200px]">
+                <img
+                  src={selectedBookForView.coverImage || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=600'}
+                  alt={selectedBookForView.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=600';
+                  }}
+                />
+              </div>
+
+              {/* Book Details */}
+              <div className="flex-1 flex flex-col justify-between space-y-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-2 pr-8">
                     <span className="px-2.5 py-0.5 rounded-md bg-[#8FAE9B]/15 text-[#8FAE9B] text-xs font-semibold uppercase tracking-wider">
                       {selectedBookForView.category || 'General'}
                     </span>
@@ -980,66 +1123,66 @@ export default function DashboardPage() {
                     )}
                   </div>
 
-                  <button
-                    onClick={() => setSelectedBookForView(null)}
-                    className="text-[#A0A0A0] hover:text-[#F7F4EB] text-xs p-1 cursor-pointer"
-                  >
-                    ✕ Close
-                  </button>
+                  <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#F7F4EB] leading-tight">
+                    {selectedBookForView.title}
+                  </h3>
+                  <p className="text-sm font-medium text-[#C8A96A] mt-1">
+                    By {selectedBookForView.author}
+                  </p>
+
+                  <p className="text-xs text-[#A0A0A0] leading-relaxed mt-3">
+                    {selectedBookForView.description || 'Full book available for AI reading, live semantic highlighting, and interactive study tutoring.'}
+                  </p>
                 </div>
 
-                <h3 className="font-serif text-2xl font-bold text-[#F7F4EB]">
-                  {selectedBookForView.title}
-                </h3>
-                <p className="text-sm font-medium text-[#C8A96A] mt-1">
-                  By {selectedBookForView.author}
-                </p>
-
-                <div className="flex items-center gap-2 mt-2 text-xs text-[#F7D373]">
-                  <Star size={14} className="fill-yellow-400 text-yellow-400" />
-                  <span className="font-bold">{selectedBookForView.averageRating?.toFixed(1) || '4.8'}</span>
-                  <span className="text-[#888888]">({selectedBookForView.totalRatings || '1.2k'} reviews)</span>
+                {/* Interactive Star Rating (Requirement #7) */}
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[11px] font-semibold tracking-wider text-[#A0A0A0] uppercase">
+                    Rate This Book
+                  </span>
+                  <StarRating
+                    bookId={selectedBookForView._id}
+                    initialAverageRating={selectedBookForView.averageRating || 0}
+                    initialTotalRatings={selectedBookForView.totalRatings || 0}
+                    onRatingUpdated={handleRatingUpdated}
+                  />
                 </div>
 
-                <p className="text-xs text-[#A0A0A0] leading-relaxed mt-4">
-                  {selectedBookForView.description || 'Full book available for AI reading, live semantic highlighting, and interactive study tutoring.'}
-                </p>
-              </div>
-
-              <div className="space-y-2 pt-4 border-t border-[#2e2e2e]">
-                <button
-                  onClick={() => {
-                    alert(`Starting reader for "${selectedBookForView.title}"! Reader canvas is ready for integration.`);
-                    setSelectedBookForView(null);
-                  }}
-                  className="w-full py-3 bg-gradient-to-r from-[#C8A96A] to-[#B59659] hover:brightness-110 text-white font-semibold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  <BookOpen size={16} />
-                  <span>Start Reading with AI Tutor</span>
-                </button>
-
-                {canEditSelectedBook && (
+                {/* Primary Action Buttons */}
+                <div className="space-y-2 pt-2 border-t border-[#2e2e2e]">
                   <button
                     onClick={() => {
-                      const book = selectedBookForView;
+                      alert(`Starting reader for "${selectedBookForView.title}"! Reader canvas is ready for integration.`);
                       setSelectedBookForView(null);
-                      handleOpenEdit(book);
                     }}
-                    className="w-full py-2.5 bg-[#252525] hover:bg-[#C8A96A] text-[#C8A96A] hover:text-black border border-[#C8A96A]/40 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-gradient-to-r from-[#C8A96A] to-[#B59659] hover:brightness-110 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
-                    <Pencil size={14} />
-                    <span>Edit Book Details / Change Visibility</span>
+                    <BookOpen size={16} />
+                    <span>Start Reading with AI Tutor</span>
                   </button>
-                )}
 
-                <button
-                  onClick={() => setSelectedBookForView(null)}
-                  className="w-full py-2 text-[#A0A0A0] hover:text-[#F7F4EB] text-xs font-medium transition-all cursor-pointer"
-                >
-                  Back to Library
-                </button>
+                  {canEditSelectedBook && (
+                    <button
+                      onClick={() => {
+                        const book = selectedBookForView;
+                        setSelectedBookForView(null);
+                        handleOpenEdit(book);
+                      }}
+                      className="w-full py-2 bg-[#252525] hover:bg-[#C8A96A] text-[#C8A96A] hover:text-black border border-[#C8A96A]/40 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <Pencil size={14} />
+                      <span>Edit Book Details / Change Visibility</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* Social Comments & Discussion (Requirements #1, #3, #8, #12) */}
+            <BookComments
+              bookId={selectedBookForView._id}
+              currentUser={currentUser}
+            />
 
           </div>
         </div>

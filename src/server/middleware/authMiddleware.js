@@ -15,7 +15,8 @@ const verifyToken = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
 
     // Lookup user in DB to ensure role and existence are up to date
-    const user = await User.findById(decoded.userId).select('-password');
+    const targetId = decoded.userId || decoded._id || decoded.id;
+    const user = await User.findById(targetId).select('-password');
     if (!user) {
       return res.status(401).json({ message: 'User belonging to this token no longer exists.' });
     }
@@ -29,6 +30,27 @@ const verifyToken = async (req, res, next) => {
 };
 
 /**
+ * Optional authentication: if token is present and valid, attaches req.user; otherwise continues
+ */
+const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+      const targetId = decoded.userId || decoded._id || decoded.id;
+      const user = await User.findById(targetId).select('-password');
+      if (user) {
+        req.user = user;
+      }
+    }
+  } catch {
+    // Ignore invalid token for public endpoints
+  }
+  next();
+};
+
+/**
  * Middleware to ensure authenticated user has 'admin' role
  */
 const isAdmin = (req, res, next) => {
@@ -38,4 +60,4 @@ const isAdmin = (req, res, next) => {
   next();
 };
 
-module.exports = { verifyToken, isAdmin };
+module.exports = { verifyToken, optionalAuth, isAdmin };
