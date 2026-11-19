@@ -6,6 +6,7 @@ const authRoutes = require('../src/server/routes/authRoutes');
 const bookRoutes = require('../src/server/routes/bookRoutes');
 const adminRoutes = require('../src/server/routes/adminRoutes');
 const commentRoutes = require('../src/server/routes/commentRoutes');
+const graphqlRoutes = require('../src/server/routes/graphqlRoutes');
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', commentRoutes);
+app.use('/graphql', graphqlRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

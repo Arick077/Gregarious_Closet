@@ -3,15 +3,21 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   BookOpen, LogOut, Plus, Sparkles, BookMarked, Compass, Clock, User, 
   Flame, Search, ChevronRight, ChevronLeft, ShieldCheck, Star, BookmarkCheck,
-  Pencil, Trash2, FolderPlus, X, Lock, Globe, Target, ChevronDown, ListFilter
+  Pencil, Trash2, FolderPlus, X, Lock, Globe, Target, ChevronDown, ListFilter,
+  Film, MapPin, Headphones, FileText, Menu
 } from 'lucide-react';
 import logo from '../assets/logo.png';
 import BookCard from '../components/BookCard';
 import AdminUploadModal from '../components/AdminUploadModal';
 import EditBookModal from '../components/EditBookModal';
 import ReadingRoadmapModal from '../components/ReadingRoadmapModal';
+import MediaLoungeModal from '../components/MediaLoungeModal';
+import CommunityMapModal from '../components/CommunityMapModal';
+import SessionInfoModal from '../components/SessionInfoModal';
+import CrystalReportModal from '../components/CrystalReportModal';
 import StarRating from '../components/StarRating';
 import BookComments from '../components/BookComments';
+import { staggerReveal } from '../utils/animations';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -23,10 +29,35 @@ export default function DashboardPage() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isMediaLoungeOpen, setIsMediaLoungeOpen] = useState(false);
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [mediaLoungeInitialData, setMediaLoungeInitialData] = useState({
+    tab: 'video',
+    videoUrl: null,
+    audioUrl: null,
+    bookTitle: null
+  });
   const [isRoadmapModalOpen, setIsRoadmapModalOpen] = useState(false);
   const [roadmapModalTab, setRoadmapModalTab] = useState('list');
   const [isRoadmapDropdownOpen, setIsRoadmapDropdownOpen] = useState(false);
   const roadmapDropdownRef = useRef(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const mobileMenuRef = useRef(null);
+
+  // Close mobile menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target)) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    if (isMobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMobileMenuOpen]);
 
   const [savedRoadmaps, setSavedRoadmaps] = useState(() => {
     try {
@@ -177,6 +208,8 @@ export default function DashboardPage() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('session_info');
+    sessionStorage.removeItem('active_session_token');
     navigate('/auth');
   };
 
@@ -347,6 +380,13 @@ export default function DashboardPage() {
     setFeedPage(1);
   }, [selectedCategory, searchQuery, feedLimit]);
 
+  // GSAP Stagger Reveal for Book Cards Grid (Requirement #15)
+  useEffect(() => {
+    if (paginatedFeedBooks.length > 0) {
+      staggerReveal('.book-card-animated');
+    }
+  }, [paginatedFeedBooks, feedPage]);
+
   const handleFeedPageChange = (newPage) => {
     setFeedPage(newPage);
     if (libraryExplorerRef.current) {
@@ -366,27 +406,64 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-[#141414] text-[#F7F4EB] font-sans flex flex-col selection:bg-[#C8A96A] selection:text-black">
       
       {/* ==================== TOP NAVIGATION BAR ==================== */}
-      <header className="border-b border-[#292929] bg-[#181818]/90 backdrop-blur-md sticky top-0 z-40 transition-colors">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <header className="border-b border-[#292929] bg-[#181818]/95 backdrop-blur-md sticky top-0 z-40 transition-colors w-full max-w-full">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
           
-          <div className="flex items-center gap-6">
-            <Link to="/" className="flex items-center gap-3">
-              <img src={logo} alt="Logo" className="w-9 h-9 object-contain" />
-              <span className="font-serif font-bold text-lg tracking-wide text-[#F7F4EB]">
+          {/* Logo & Brand */}
+          <div className="flex items-center gap-3 sm:gap-6 shrink-0 min-w-0">
+            <Link to="/" className="flex items-center gap-2 sm:gap-3 shrink-0">
+              <img src={logo} alt="Logo" className="w-8 h-8 sm:w-9 sm:h-9 object-contain" />
+              <span className="font-serif font-bold text-base sm:text-lg tracking-wide text-[#F7F4EB] truncate">
                 Gregarious<span className="text-[#C8A96A] italic">Closet</span>
               </span>
             </Link>
 
-            <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#C8A96A]/10 border border-[#C8A96A]/20 text-[11px] font-semibold text-[#C8A96A]">
+            <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#C8A96A]/10 border border-[#C8A96A]/20 text-[11px] font-semibold text-[#C8A96A] shrink-0">
               <Flame size={12} className="text-[#C8A96A]" />
               <span>Public Library Feed</span>
             </span>
           </div>
 
-          {/* User Controls & Book Upload CTA */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* DESKTOP TOOLBAR (Hidden on mobile, visible on md and up) */}
+          <div className="hidden md:flex items-center gap-2.5 sm:gap-3">
             
-            {/* Reading Roadmap Action Dropdown (Requirement #6 & #14) */}
+            {/* Media Lounge Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setMediaLoungeInitialData({ tab: 'video', videoUrl: null, audioUrl: null, bookTitle: null });
+                setIsMediaLoungeOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#C8A96A]/40 bg-[#202020] hover:bg-[#C8A96A]/15 text-[#C8A96A] text-xs font-semibold shadow-sm transition-all cursor-pointer"
+              title="Media Lounge"
+            >
+              <Film size={14} />
+              <span>Media</span>
+            </button>
+
+            {/* Community Closet Hubs Map Button */}
+            <button
+              type="button"
+              onClick={() => setIsMapModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#C8A96A]/40 bg-[#202020] hover:bg-[#C8A96A]/15 text-[#C8A96A] text-xs font-semibold shadow-sm transition-all cursor-pointer"
+              title="Closet Hubs Map"
+            >
+              <MapPin size={14} />
+              <span>Hubs</span>
+            </button>
+
+            {/* Crystal Report Button */}
+            <button
+              type="button"
+              onClick={() => setIsReportModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#C8A96A]/40 bg-[#202020] hover:bg-[#C8A96A]/15 text-[#C8A96A] text-xs font-semibold shadow-sm transition-all cursor-pointer"
+              title="Crystal Audit Report"
+            >
+              <FileText size={14} />
+              <span>Report</span>
+            </button>
+
+            {/* Reading Roadmap Dropdown */}
             <div className="relative" ref={roadmapDropdownRef}>
               <button
                 type="button"
@@ -396,11 +473,9 @@ export default function DashboardPage() {
                     ? 'bg-[#C8A96A] text-black border-[#C8A96A]'
                     : 'bg-[#202020] hover:bg-[#C8A96A]/15 border-[#C8A96A]/40 text-[#C8A96A] hover:border-[#C8A96A]'
                 }`}
-                title="Create or view reading roadmaps"
               >
                 <Target size={14} />
-                <span className="hidden md:inline">Roadmap</span>
-                <span className="md:hidden">Plan</span>
+                <span>Roadmap</span>
                 {savedRoadmaps.length > 0 && (
                   <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
                     isRoadmapDropdownOpen ? 'bg-black/20 text-black' : 'bg-[#C8A96A]/20 text-[#C8A96A]'
@@ -411,11 +486,8 @@ export default function DashboardPage() {
                 <ChevronDown size={12} className={`transition-transform duration-200 ${isRoadmapDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* Roadmap Dropdown Menu */}
               {isRoadmapDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[#202020] border border-[#333333] shadow-2xl p-1.5 z-50 animate-fadeIn space-y-1">
-                  
-                  {/* Option 1: Create New Roadmap */}
                   <button
                     type="button"
                     onClick={() => {
@@ -430,13 +502,10 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <div className="leading-tight font-bold">Create New Roadmap</div>
-                      <div className="text-[10px] text-[#A0A0A0] group-hover:text-black/80 font-normal">
-                        Cascading subjects & dynamic goals
-                      </div>
+                      <div className="text-[10px] text-[#A0A0A0] group-hover:text-black/80 font-normal">Cascading subjects & dynamic goals</div>
                     </div>
                   </button>
 
-                  {/* Option 2: View Existing Roadmaps */}
                   <button
                     type="button"
                     onClick={() => {
@@ -452,36 +521,37 @@ export default function DashboardPage() {
                       </div>
                       <div>
                         <div className="leading-tight font-bold">Existing Roadmaps</div>
-                        <div className="text-[10px] text-[#A0A0A0] group-hover:text-black/80 font-normal">
-                          View, edit milestones & progress
-                        </div>
+                        <div className="text-[10px] text-[#A0A0A0] group-hover:text-black/80 font-normal">View & edit milestones</div>
                       </div>
                     </div>
                     <span className="px-2 py-0.5 rounded-md bg-[#252525] group-hover:bg-black/20 group-hover:text-black text-[#C8A96A] text-[10px] font-bold">
                       {savedRoadmaps.length}
                     </span>
                   </button>
-
                 </div>
               )}
             </div>
 
-            {/* Universal Upload Button (Accessible to all authenticated users) */}
+            {/* Upload Button */}
             <button
               onClick={() => setIsAdminModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#C8A96A] to-[#B59659] text-white text-xs font-semibold shadow-md hover:brightness-110 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#C8A96A] to-[#B59659] text-white text-xs font-semibold shadow-md hover:brightness-110 transition-all cursor-pointer shrink-0"
             >
               <Plus size={14} />
-              <span className="hidden sm:inline">{isAdmin ? 'Publish Book' : 'Add Book'}</span>
-              <span className="sm:hidden">Add</span>
+              <span>{isAdmin ? 'Publish Book' : 'Add Book'}</span>
             </button>
 
-            {/* User Profile Badge */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#202020] border border-[#333333]">
+            {/* Profile Avatar / Session Badge */}
+            <button
+              type="button"
+              onClick={() => setIsSessionModalOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#202020] hover:bg-[#262626] border border-[#333333] hover:border-[#C8A96A]/60 transition-all cursor-pointer shrink-0"
+              title="View Active Session"
+            >
               <div className="w-6 h-6 rounded-full bg-[#8FAE9B]/20 text-[#8FAE9B] flex items-center justify-center font-bold text-xs uppercase">
                 {currentUser?.name ? currentUser.name[0] : <User size={13} />}
               </div>
-              <span className="text-xs font-medium text-[#F7F4EB] pr-1 max-w-[100px] truncate">
+              <span className="text-xs font-medium text-[#F7F4EB] max-w-[90px] truncate">
                 {currentUser?.username || currentUser?.name || 'Reader'}
               </span>
               {isAdmin && (
@@ -489,18 +559,137 @@ export default function DashboardPage() {
                   Admin
                 </span>
               )}
-            </div>
+            </button>
 
             {/* Logout */}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 text-xs text-[#A0A0A0] hover:text-[#F7F4EB] p-2 sm:px-3 sm:py-1.5 rounded-xl hover:bg-[#202020] transition-all cursor-pointer"
+              className="flex items-center gap-1.5 text-xs text-[#A0A0A0] hover:text-[#F7F4EB] p-2 rounded-xl hover:bg-[#202020] transition-all cursor-pointer shrink-0"
               title="Sign Out"
             >
               <LogOut size={16} />
-              <span className="hidden sm:inline">Sign Out</span>
             </button>
           </div>
+
+          {/* MOBILE TOOLBAR (Visible only on screens < md) */}
+          <div className="flex md:hidden items-center gap-2 shrink-0" ref={mobileMenuRef}>
+            
+            {/* Quick Upload Button */}
+            <button
+              onClick={() => setIsAdminModalOpen(true)}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-[#C8A96A] to-[#B59659] text-white text-xs font-semibold shadow transition-all cursor-pointer shrink-0"
+              title="Upload book"
+            >
+              <Plus size={14} />
+              <span className="text-[11px]">Add</span>
+            </button>
+
+            {/* Quick Profile / Session Pill */}
+            <button
+              type="button"
+              onClick={() => setIsSessionModalOpen(true)}
+              className="w-8 h-8 rounded-full bg-[#202020] border border-[#333333] flex items-center justify-center text-[#8FAE9B] font-bold text-xs uppercase shrink-0"
+              title="Active Session"
+            >
+              {currentUser?.name ? currentUser.name[0] : <User size={13} />}
+            </button>
+
+            {/* Mobile Hamburger Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className={`p-2 rounded-xl border transition-all cursor-pointer shrink-0 ${
+                isMobileMenuOpen
+                  ? 'bg-[#C8A96A] text-black border-[#C8A96A]'
+                  : 'bg-[#202020] border-[#333333] text-[#F7F4EB] hover:border-[#C8A96A]'
+              }`}
+              aria-label="Toggle mobile menu"
+            >
+              {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+
+            {/* Mobile Dropdown Sheet */}
+            {isMobileMenuOpen && (
+              <div className="absolute top-16 left-0 right-0 w-full bg-[#181818] border-b border-[#292929] shadow-2xl p-4 z-50 animate-fadeIn space-y-2">
+                <div className="text-[11px] font-semibold text-[#777777] uppercase tracking-wider px-2 pb-1">
+                  Navigation & Tools
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Media Lounge */}
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setMediaLoungeInitialData({ tab: 'video', videoUrl: null, audioUrl: null, bookTitle: null });
+                      setIsMediaLoungeOpen(true);
+                    }}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[#202020] hover:bg-[#C8A96A]/20 border border-[#333333] text-xs font-semibold text-[#F7F4EB]"
+                  >
+                    <Film size={15} className="text-[#C8A96A]" />
+                    <span>Media Lounge</span>
+                  </button>
+
+                  {/* Hubs Map */}
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setIsMapModalOpen(true);
+                    }}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[#202020] hover:bg-[#C8A96A]/20 border border-[#333333] text-xs font-semibold text-[#F7F4EB]"
+                  >
+                    <MapPin size={15} className="text-[#C8A96A]" />
+                    <span>Closet Hubs</span>
+                  </button>
+
+                  {/* Crystal Report */}
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setIsReportModalOpen(true);
+                    }}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[#202020] hover:bg-[#C8A96A]/20 border border-[#333333] text-xs font-semibold text-[#F7F4EB]"
+                  >
+                    <FileText size={15} className="text-[#C8A96A]" />
+                    <span>Audit Report</span>
+                  </button>
+
+                  {/* Reading Roadmap */}
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setRoadmapModalTab('list');
+                      setIsRoadmapModalOpen(true);
+                    }}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[#202020] hover:bg-[#C8A96A]/20 border border-[#333333] text-xs font-semibold text-[#F7F4EB]"
+                  >
+                    <Target size={15} className="text-[#C8A96A]" />
+                    <span>Roadmaps ({savedRoadmaps.length})</span>
+                  </button>
+                </div>
+
+                {/* Mobile Session & Logout */}
+                <div className="pt-2 border-t border-[#292929] flex items-center justify-between px-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-[#A0A0A0]">Signed in as:</span>
+                    <strong className="text-xs text-[#F7F4EB] truncate max-w-[120px]">
+                      {currentUser?.username || currentUser?.name || 'Reader'}
+                    </strong>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/60 hover:bg-red-900/80 border border-red-500/30 text-red-300 text-xs font-semibold"
+                  >
+                    <LogOut size={13} />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
         </div>
       </header>
 
@@ -861,14 +1050,15 @@ export default function DashboardPage() {
           {/* Books Grid with Paginated Feed */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
             {paginatedFeedBooks.map((book) => (
-              <BookCard
-                key={book._id}
-                book={book}
-                isAdmin={isAdmin}
-                currentUser={currentUser}
-                onSelectBook={(selected) => setSelectedBookForView(selected)}
-                onEditBook={(selected) => handleOpenEdit(selected)}
-              />
+              <div key={book._id} className="book-card-animated flex justify-center">
+                <BookCard
+                  book={book}
+                  isAdmin={isAdmin}
+                  currentUser={currentUser}
+                  onSelectBook={(selected) => setSelectedBookForView(selected)}
+                  onEditBook={(selected) => handleOpenEdit(selected)}
+                />
+              </div>
             ))}
           </div>
 
@@ -1076,22 +1266,22 @@ export default function DashboardPage() {
 
       {/* ==================== BOOK DETAIL MODAL ==================== */}
       {selectedBookForView && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="relative w-full max-w-3xl bg-[#1e1e1e] border border-[#333333] rounded-3xl p-5 sm:p-8 shadow-2xl max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-sm animate-fadeIn overflow-y-auto overflow-x-hidden">
+          <div className="relative w-full max-w-3xl bg-[#1e1e1e] border border-[#333333] rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl max-h-[92vh] overflow-y-auto overflow-x-hidden my-auto">
             
             {/* Top Close Button */}
             <button
               onClick={() => setSelectedBookForView(null)}
-              className="absolute top-5 right-5 text-[#888888] hover:text-[#F7F4EB] bg-[#282828] hover:bg-[#333333] w-8 h-8 rounded-full flex items-center justify-center text-sm transition-all cursor-pointer z-10"
+              className="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 text-[#888888] hover:text-[#F7F4EB] bg-[#282828] hover:bg-[#333333] w-8 h-8 rounded-full flex items-center justify-center text-sm transition-all cursor-pointer z-10"
               aria-label="Close modal"
             >
               ✕
             </button>
 
             {/* Book Info Top Grid */}
-            <div className="flex flex-col sm:flex-row gap-6">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 min-w-0">
               {/* Book Cover */}
-              <div className="w-full sm:w-44 shrink-0 aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl border border-white/10 mx-auto sm:mx-0 max-w-[200px]">
+              <div className="w-36 sm:w-44 shrink-0 aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl border border-white/10 mx-auto sm:mx-0">
                 <img
                   src={selectedBookForView.coverImage || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=600'}
                   alt={selectedBookForView.title}
@@ -1104,9 +1294,9 @@ export default function DashboardPage() {
               </div>
 
               {/* Book Details */}
-              <div className="flex-1 flex flex-col justify-between space-y-4">
+              <div className="flex-1 flex flex-col justify-between space-y-3 sm:space-y-4 min-w-0">
                 <div>
-                  <div className="flex items-center gap-2 mb-2 pr-8">
+                  <div className="flex flex-wrap items-center gap-2 mb-2 pr-8">
                     <span className="px-2.5 py-0.5 rounded-md bg-[#8FAE9B]/15 text-[#8FAE9B] text-xs font-semibold uppercase tracking-wider">
                       {selectedBookForView.category || 'General'}
                     </span>
@@ -1123,14 +1313,14 @@ export default function DashboardPage() {
                     )}
                   </div>
 
-                  <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#F7F4EB] leading-tight">
+                  <h3 className="font-serif text-xl sm:text-3xl font-bold text-[#F7F4EB] leading-tight break-words">
                     {selectedBookForView.title}
                   </h3>
-                  <p className="text-sm font-medium text-[#C8A96A] mt-1">
+                  <p className="text-xs sm:text-sm font-medium text-[#C8A96A] mt-1 break-words">
                     By {selectedBookForView.author}
                   </p>
 
-                  <p className="text-xs text-[#A0A0A0] leading-relaxed mt-3">
+                  <p className="text-xs text-[#A0A0A0] leading-relaxed mt-2.5 break-words">
                     {selectedBookForView.description || 'Full book available for AI reading, live semantic highlighting, and interactive study tutoring.'}
                   </p>
                 </div>
@@ -1150,6 +1340,48 @@ export default function DashboardPage() {
 
                 {/* Primary Action Buttons */}
                 <div className="space-y-2 pt-2 border-t border-[#2e2e2e]">
+                  {/* External Media Links (Requirement #9) */}
+                  {(selectedBookForView.youtubeUrl || selectedBookForView.audioSampleUrl) && (
+                    <div className="flex flex-wrap items-center gap-2 pb-1">
+                      {selectedBookForView.youtubeUrl && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMediaLoungeInitialData({
+                              tab: 'video',
+                              videoUrl: selectedBookForView.youtubeUrl,
+                              audioUrl: null,
+                              bookTitle: selectedBookForView.title
+                            });
+                            setIsMediaLoungeOpen(true);
+                          }}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-950/50 hover:bg-red-900/60 border border-red-500/40 text-red-300 text-xs font-semibold transition-all cursor-pointer shadow"
+                        >
+                          <Film size={14} className="text-red-400" />
+                          <span>Watch Review</span>
+                        </button>
+                      )}
+                      {selectedBookForView.audioSampleUrl && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMediaLoungeInitialData({
+                              tab: 'audio',
+                              videoUrl: null,
+                              audioUrl: selectedBookForView.audioSampleUrl,
+                              bookTitle: selectedBookForView.title
+                            });
+                            setIsMediaLoungeOpen(true);
+                          }}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-950/50 hover:bg-amber-900/60 border border-amber-500/40 text-amber-300 text-xs font-semibold transition-all cursor-pointer shadow"
+                        >
+                          <Headphones size={14} className="text-amber-400" />
+                          <span>Listen to Sample</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   <button
                     onClick={() => {
                       alert(`Starting reader for "${selectedBookForView.title}"! Reader canvas is ready for integration.`);
@@ -1231,6 +1463,37 @@ export default function DashboardPage() {
         initialTab={roadmapModalTab}
         onClose={() => setIsRoadmapModalOpen(false)}
         onRoadmapsChanged={(updated) => setSavedRoadmaps(updated)}
+      />
+
+      {/* ==================== MEDIA LOUNGE MODAL (REQ #9) ==================== */}
+      <MediaLoungeModal
+        isOpen={isMediaLoungeOpen}
+        onClose={() => setIsMediaLoungeOpen(false)}
+        initialTab={mediaLoungeInitialData.tab}
+        initialVideoUrl={mediaLoungeInitialData.videoUrl}
+        initialAudioUrl={mediaLoungeInitialData.audioUrl}
+        initialBookTitle={mediaLoungeInitialData.bookTitle}
+      />
+
+      {/* ==================== COMMUNITY MAP MODAL (REQ #10) ==================== */}
+      <CommunityMapModal
+        isOpen={isMapModalOpen}
+        onClose={() => setIsMapModalOpen(false)}
+      />
+
+      {/* ==================== SESSION INFO MODAL (REQ #11) ==================== */}
+      <SessionInfoModal
+        isOpen={isSessionModalOpen}
+        currentUser={currentUser}
+        onClose={() => setIsSessionModalOpen(false)}
+      />
+
+      {/* ==================== CRYSTAL AUDIT REPORT (REQ #20) ==================== */}
+      <CrystalReportModal
+        isOpen={isReportModalOpen}
+        books={trendingBooks}
+        currentUser={currentUser}
+        onClose={() => setIsReportModalOpen(false)}
       />
 
       {/* ==================== FOOTER ==================== */}

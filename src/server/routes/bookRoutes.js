@@ -222,6 +222,8 @@ router.post(
         fileUrl: bookFileUrl,
         fileType: fileExtension,
         coverImage: coverImageUrl,
+        youtubeUrl: req.body.youtubeUrl ? req.body.youtubeUrl.trim() : null,
+        audioSampleUrl: req.body.audioSampleUrl ? req.body.audioSampleUrl.trim() : null,
         isPublic: isPublic, // Set by the user
         uploadedBy: req.user._id,
         averageRating: averageRating ? Number(averageRating) : 4.8
@@ -279,6 +281,8 @@ router.put(
       if (author !== undefined) book.author = author.trim() || 'Unknown';
       if (description !== undefined) book.description = description.trim();
       if (category !== undefined) book.category = category.trim();
+      if (req.body.youtubeUrl !== undefined) book.youtubeUrl = req.body.youtubeUrl ? req.body.youtubeUrl.trim() : null;
+      if (req.body.audioSampleUrl !== undefined) book.audioSampleUrl = req.body.audioSampleUrl ? req.body.audioSampleUrl.trim() : null;
       if (averageRating !== undefined && !isNaN(Number(averageRating))) {
         book.averageRating = Number(averageRating);
       }

@@ -1,13 +1,26 @@
-import React from "react";
+import React, { useEffect } from "react";
 import logo from "../assets/log_trans2.png";
+import { heroTextReveal } from "../utils/animations";
 
 export default function HeroLp() {
+  useEffect(() => {
+    const tween = heroTextReveal('.hero-content');
+    return () => {
+      if (tween) tween.kill();
+      const children = document.querySelectorAll('.hero-content > *');
+      children.forEach((el) => {
+        el.style.opacity = '';
+        el.style.transform = '';
+      });
+    };
+  }, []);
+
   return (
     <section id="home" className=" relative flex min-h-[calc(100vh-75px)] w-full items-center bg-[#FAF8F5]">
       <div className="mx-auto grid w-full max-w-[1440px] grid-cols-1 items-center gap-8 px-5 py-12 lg:grid-cols-12">
         
         {/* LEFT COLUMN: Text Content & CTAs */}
-        <div className="flex flex-col justify-center gap-6 lg:col-span-6">
+        <div className="hero-content flex flex-col justify-center gap-6 lg:col-span-6">
           {/* Heading */}
           <h1 className="font-sans text-4xl font-extrabold tracking-tight text-[#1E1E1E] sm:text-5xl lg:text-6xl">
             Where Every{" "}

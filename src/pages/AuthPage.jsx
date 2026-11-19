@@ -76,6 +76,18 @@ export default function LoginPage() {
       if (response.ok) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
+
+        // Session Information Tracking (Requirement #11)
+        const sessionInfo = {
+          sessionId: 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+          loginTime: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24hr match with JWT
+          userAgent: navigator.userAgent,
+          platform: navigator.platform || 'Web Browser'
+        };
+        localStorage.setItem('session_info', JSON.stringify(sessionInfo));
+        sessionStorage.setItem('active_session_token', data.token);
+
         setSuccessMessage('Welcome back! Redirecting...');
         setTimeout(() => navigate('/dashboard'), 1000);
       } else {

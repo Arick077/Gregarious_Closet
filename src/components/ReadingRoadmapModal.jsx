@@ -303,9 +303,6 @@ export default function ReadingRoadmapModal({
                 <h3 className="font-serif text-xl font-bold text-[#F7F4EB]">
                   Reading Roadmap Center
                 </h3>
-                <span className="px-2 py-0.5 rounded-full bg-[#C8A96A]/15 border border-[#C8A96A]/30 text-[10px] font-bold text-[#C8A96A] uppercase">
-                  Req #6 & #14
-                </span>
               </div>
               <p className="text-xs text-[#A0A0A0]">
                 Manage, edit, and track your structured reading milestones and target dates.
@@ -580,7 +577,7 @@ export default function ReadingRoadmapModal({
               <div className="flex items-center gap-2 pb-2 border-b border-[#2e2e2e]">
                 <Layers size={16} className="text-[#C8A96A]" />
                 <span className="text-xs font-bold text-[#F7F4EB] uppercase tracking-wider">
-                  Subject & Level (Cascading Dropdown Lists - Req #6)
+                  Subject & Level (Cascading Dropdown Lists)
                 </span>
               </div>
 
@@ -653,7 +650,7 @@ export default function ReadingRoadmapModal({
                 <div className="flex items-center gap-2">
                   <Bookmark size={16} className="text-[#8FAE9B]" />
                   <span className="text-xs font-bold text-[#F7F4EB] uppercase tracking-wider">
-                    Key Study Milestones ({milestones.length}) - Req #6
+                    Key Study Milestones ({milestones.length})
                   </span>
                 </div>
 
@@ -701,7 +698,7 @@ export default function ReadingRoadmapModal({
                 <div className="flex items-center gap-2">
                   <Calendar size={16} className="text-[#C8A96A]" />
                   <label className="text-xs font-bold text-[#F7F4EB] uppercase tracking-wider">
-                    Target Completion Date * (Requirement #14)
+                    Target Completion Date *
                   </label>
                 </div>
                 {targetDate && (

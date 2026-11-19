@@ -33,6 +33,16 @@ const bookSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  youtubeUrl: {
+    type: String,
+    default: null,
+    trim: true
+  },
+  audioSampleUrl: {
+    type: String,
+    default: null,
+    trim: true
+  },
   isPublic: {
     type: Boolean,
     default: false

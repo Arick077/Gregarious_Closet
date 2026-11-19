@@ -1,0 +1,38 @@
+@use 'variables' as *;
+@use 'sass:color';
+
+@mixin glassmorphism($blur: 12px, $opacity: 0.85) {
+  background: rgba(32, 32, 32, $opacity);
+  backdrop-filter: blur($blur);
+  -webkit-backdrop-filter: blur($blur);
+  border: 1px solid rgba($brand-gold, 0.15);
+}
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin gold-glow($spread: 8px) {
+  box-shadow: 0 0 $spread rgba($brand-gold, 0.3);
+}
+
+@mixin custom-scrollbar($thumb-color: $brand-gold, $track-color: $brand-card) {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: $track-color;
+    border-radius: $radius-full;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: $thumb-color;
+    border-radius: $radius-full;
+
+    &:hover {
+      background: color.adjust($thumb-color, $lightness: 10%);
+    }
+  }
+}
+

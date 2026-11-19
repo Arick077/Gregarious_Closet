@@ -1,0 +1,199 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'sass:color';
+
+.media-player {
+  @include glassmorphism(16px, 0.92);
+  border-radius: $radius-xl;
+  padding: 1rem 1.25rem;
+  width: 100%;
+
+  .player-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+
+    .track-title {
+      color: $text-primary;
+      font-weight: 600;
+      font-size: 0.85rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .track-artist {
+      color: $text-muted;
+      font-size: 0.72rem;
+    }
+  }
+
+  .player-controls {
+    @include flex-center;
+    gap: 1rem;
+
+    .play-btn {
+      @include flex-center;
+      width: 42px;
+      height: 42px;
+      border-radius: $radius-full;
+      background: $brand-gold;
+      color: $brand-dark;
+      border: none;
+      cursor: pointer;
+      transition: background $transition-normal, transform $transition-fast;
+      flex-shrink: 0;
+
+      &:hover {
+        background: color.adjust($brand-gold, $lightness: 8%);
+        transform: scale(1.08);
+        @include gold-glow(12px);
+      }
+
+      &:active {
+        transform: scale(0.96);
+      }
+    }
+  }
+
+  .progress-section {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    margin-top: 0.5rem;
+
+    .time-display {
+      font-size: 0.68rem;
+      color: $text-muted;
+      font-variant-numeric: tabular-nums;
+      min-width: 36px;
+      text-align: center;
+    }
+
+    .progress-bar {
+      flex: 1;
+      appearance: none;
+      -webkit-appearance: none;
+      height: 5px;
+      border-radius: $radius-full;
+      background: color.adjust($brand-card, $lightness: -5%);
+      outline: none;
+      cursor: pointer;
+      transition: height $transition-fast;
+
+      &:hover {
+        height: 7px;
+      }
+
+      &::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: $brand-gold;
+        cursor: pointer;
+        box-shadow: 0 0 6px rgba($brand-gold, 0.4);
+        transition: transform $transition-fast;
+
+        &:hover {
+          transform: scale(1.3);
+        }
+      }
+
+      &::-moz-range-thumb {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: $brand-gold;
+        cursor: pointer;
+        border: none;
+      }
+    }
+  }
+
+  .volume-section {
+    @include flex-center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+
+    .volume-btn {
+      background: none;
+      border: none;
+      color: $text-secondary;
+      cursor: pointer;
+      padding: 4px;
+      transition: color $transition-fast;
+
+      &:hover {
+        color: $brand-gold;
+      }
+    }
+
+    .volume-slider {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 80px;
+      height: 4px;
+      border-radius: $radius-full;
+      background: color.adjust($brand-card, $lightness: -3%);
+      outline: none;
+      cursor: pointer;
+
+      &::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: $brand-gold;
+        cursor: pointer;
+      }
+    }
+  }
+
+  // Track list with custom scrollbar
+  .track-list {
+    @include custom-scrollbar;
+    max-height: 240px;
+    overflow-y: auto;
+    padding-right: 4px;
+
+    .track-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: $radius-md;
+      cursor: pointer;
+      transition: background $transition-fast;
+      border-left: 3px solid transparent;
+
+      &:hover {
+        background: rgba($brand-gold, 0.08);
+      }
+
+      &.active {
+        background: rgba($brand-gold, 0.12);
+        border-left-color: $brand-gold;
+
+        .track-name {
+          color: $brand-gold;
+        }
+      }
+
+      .track-name {
+        color: $text-primary;
+        font-size: 0.8rem;
+        font-weight: 500;
+      }
+
+      .track-source {
+        color: $text-muted;
+        font-size: 0.68rem;
+      }
+    }
+  }
+}
+

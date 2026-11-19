@@ -376,6 +376,17 @@ export default function SignUpPage() {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
 
+        // Session Information Tracking (Requirement #11)
+        const sessionInfo = {
+          sessionId: 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+          loginTime: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          userAgent: navigator.userAgent,
+          platform: navigator.platform || 'Web Browser'
+        };
+        localStorage.setItem('session_info', JSON.stringify(sessionInfo));
+        sessionStorage.setItem('active_session_token', data.token);
+
         setSuccessMessage('Account created & verified! Redirecting to dashboard...');
         setTimeout(() => navigate('/dashboard'), 1200);
       } else {
@@ -749,10 +760,10 @@ export default function SignUpPage() {
 
           <div className="space-y-2.5 pt-2">
             {[
-              'Real-time unique username availability check (Requirement #4)',
-              'Gmail-style 6-digit OTP verification modal (Requirement #5)',
-              'Dynamic cascading roadmap generation (Requirement #6)',
-              'Interactive target completion datepicker (Requirement #14)'
+              'Real-time unique username availability check',
+              'Gmail-style 6-digit OTP verification modal',
+              'Dynamic cascading roadmap generation',
+              'Interactive target completion datepicker'
             ].map((feature, i) => (
               <div key={i} className="flex items-center gap-2.5 text-xs font-medium text-[#E0E0E0]">
                 <CheckCircle2 size={16} className="text-[#8FAE9B] shrink-0" />

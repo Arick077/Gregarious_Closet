@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Trash2, FileText, Image as ImageIcon, AlertCircle, CheckCircle, Sparkles, Globe, Lock } from 'lucide-react';
+import { X, Save, Trash2, FileText, Image as ImageIcon, AlertCircle, CheckCircle, Sparkles, Globe, Lock, Film, Headphones } from 'lucide-react';
 
 export default function EditBookModal({ 
   book, 
@@ -20,7 +20,9 @@ export default function EditBookModal({
     category: 'Philosophy',
     averageRating: 4.8,
     coverImageUrl: '',
-    isPublic: true
+    isPublic: true,
+    youtubeUrl: '',
+    audioSampleUrl: ''
   });
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [customCategory, setCustomCategory] = useState('');
@@ -41,7 +43,9 @@ export default function EditBookModal({
         category: book.category || 'General',
         averageRating: book.averageRating || 4.8,
         coverImageUrl: book.coverImage || '',
-        isPublic: book.isPublic !== undefined ? Boolean(book.isPublic) : true
+        isPublic: book.isPublic !== undefined ? Boolean(book.isPublic) : true,
+        youtubeUrl: book.youtubeUrl || '',
+        audioSampleUrl: book.audioSampleUrl || ''
       });
       setCoverPreview(book.coverImage || null);
       setNewBookFile(null);
@@ -120,6 +124,8 @@ export default function EditBookModal({
       data.append('category', finalCategory);
       data.append('averageRating', formData.averageRating);
       data.append('isPublic', formData.isPublic);
+      data.append('youtubeUrl', formData.youtubeUrl ? formData.youtubeUrl.trim() : '');
+      data.append('audioSampleUrl', formData.audioSampleUrl ? formData.audioSampleUrl.trim() : '');
       
       if (newBookFile) {
         data.append('book', newBookFile);
@@ -399,6 +405,39 @@ export default function EditBookModal({
               placeholder="Brief summary of the book content and key takeaways..."
               className="w-full px-4 py-2.5 rounded-xl bg-[#181818] border border-[#333333] text-sm text-[#F7F4EB] focus:outline-none focus:border-[#C8A96A] transition-colors resize-none"
             />
+          </div>
+
+          {/* External Media (Requirement #9) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-[#A0A0A0] uppercase tracking-wider mb-1.5">
+                <Film size={14} className="text-[#C8A96A]" />
+                <span>YouTube Review URL (Optional)</span>
+              </label>
+              <input
+                type="url"
+                name="youtubeUrl"
+                value={formData.youtubeUrl}
+                onChange={handleChange}
+                placeholder="https://www.youtube.com/watch?v=..."
+                className="w-full px-4 py-2.5 rounded-xl bg-[#181818] border border-[#333333] text-sm text-[#F7F4EB] focus:outline-none focus:border-[#C8A96A] transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-[#A0A0A0] uppercase tracking-wider mb-1.5">
+                <Headphones size={14} className="text-[#C8A96A]" />
+                <span>Audiobook Sample URL (Optional)</span>
+              </label>
+              <input
+                type="url"
+                name="audioSampleUrl"
+                value={formData.audioSampleUrl}
+                onChange={handleChange}
+                placeholder="https://archive.org/download/.../chapter1.mp3"
+                className="w-full px-4 py-2.5 rounded-xl bg-[#181818] border border-[#333333] text-sm text-[#F7F4EB] focus:outline-none focus:border-[#C8A96A] transition-colors"
+              />
+            </div>
           </div>
 
           {/* File Replacements Grid */}

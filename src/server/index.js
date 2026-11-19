@@ -23,6 +23,7 @@ const authRoutes = require('./routes/authRoutes');
 const bookRoutes = require('./routes/bookRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const commentRoutes = require('./routes/commentRoutes');
+const graphqlRoutes = require('./routes/graphqlRoutes');
 
 // 4. Build the Express server
 const app = express();
@@ -41,6 +42,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', commentRoutes); // Mounts /api/books/:bookId/comments and /api/comments/:commentId/reaction
+app.use('/graphql', graphqlRoutes);
 
 // 7. Connect to MongoDB and start server
 mongoose.connect(process.env.MONGODB_URI)
