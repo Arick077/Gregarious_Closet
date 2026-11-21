@@ -1,11 +1,17 @@
-const pdfParseModule = require('pdf-parse');
-
 /**
  * Extract raw text from PDF buffer supporting both pdf-parse v1 and v2
  * @param {Buffer} pdfBuffer
  * @returns {Promise<string>}
  */
 async function extractRawPdfText(pdfBuffer) {
+  let pdfParseModule;
+  try {
+    pdfParseModule = require('pdf-parse');
+  } catch (err) {
+    console.error('Failed to load pdf-parse:', err);
+    throw new Error('PDF parsing library could not be loaded: ' + err.message);
+  }
+
   if (typeof pdfParseModule === 'function') {
     const data = await pdfParseModule(pdfBuffer);
     return data.text || '';
