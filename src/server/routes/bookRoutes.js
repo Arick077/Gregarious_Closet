@@ -4,7 +4,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const Book = require('../models/Book');
-const { verifyToken } = require('../middleware/authMiddleware');
+const { verifyToken, optionalAuth } = require('../middleware/authMiddleware');
+const { convertPdfToMarkdown } = require('../utils/pdfConverter');
 
 // Ensure uploads directory exists safely across local and serverless environments
 const uploadDir = process.env.VERCEL 
@@ -214,6 +215,25 @@ router.post(
       // Support choosing public or private (default to false if not specified)
       const isPublic = req.body.isPublic === true || req.body.isPublic === 'true';
 
+      let markdownData = { contentMarkdown: null, chapters: [], totalChapters: 0, hasMarkdown: false };
+
+      if (fileExtension === 'pdf' && bookFile.path) {
+        try {
+          const fileBuffer = fs.readFileSync(bookFile.path);
+          const converted = await convertPdfToMarkdown(fileBuffer);
+          if (converted.chapters.length > 0) {
+            markdownData = {
+              contentMarkdown: converted.contentMarkdown,
+              chapters: converted.chapters,
+              totalChapters: converted.totalChapters,
+              hasMarkdown: true
+            };
+          }
+        } catch (err) {
+          console.warn('PDF parsing skipped or failed:', err.message);
+        }
+      }
+
       const newBook = new Book({
         title: title.trim(),
         author: author ? author.trim() : 'Unknown',
@@ -226,6 +246,10 @@ router.post(
         audioSampleUrl: req.body.audioSampleUrl ? req.body.audioSampleUrl.trim() : null,
         isPublic: isPublic, // Set by the user
         uploadedBy: req.user._id,
+        contentMarkdown: markdownData.contentMarkdown,
+        chapters: markdownData.chapters,
+        totalChapters: markdownData.totalChapters,
+        hasMarkdown: markdownData.hasMarkdown,
         averageRating: averageRating ? Number(averageRating) : 4.8
       });
 
@@ -298,6 +322,21 @@ router.put(
         const fileExtension = path.extname(bookFile.originalname).replace('.', '').toLowerCase();
         book.fileUrl = `/uploads/${bookFile.filename}`;
         book.fileType = fileExtension;
+
+        if (fileExtension === 'pdf' && bookFile.path) {
+          try {
+            const fileBuffer = fs.readFileSync(bookFile.path);
+            const converted = await convertPdfToMarkdown(fileBuffer);
+            if (converted.chapters.length > 0) {
+              book.contentMarkdown = converted.contentMarkdown;
+              book.chapters = converted.chapters;
+              book.totalChapters = converted.totalChapters;
+              book.hasMarkdown = true;
+            }
+          } catch (err) {
+            console.warn('PDF parsing skipped or failed on user edit:', err.message);
+          }
+        }
       }
 
       // If new cover was uploaded, replace coverImage
@@ -320,6 +359,44 @@ router.put(
     }
   }
 );
+
+/**
+ * POST /api/books/:id/convert-markdown
+ * Converts an existing PDF on the server into Markdown in MongoDB
+ */
+router.post('/:id/convert-markdown', optionalAuth, async (req, res) => {
+  try {
+    const book = await Book.findById(req.params.id);
+    if (!book) return res.status(404).json({ message: 'Book not found' });
+
+    // Locate the file on disk or /tmp
+    const localPath = fs.existsSync(path.join(uploadDir, path.basename(book.fileUrl)))
+      ? path.join(uploadDir, path.basename(book.fileUrl))
+      : path.resolve(__dirname, '../../../', book.fileUrl.replace(/^\//, ''));
+
+    if (!fs.existsSync(localPath)) {
+      return res.status(400).json({ message: 'Original PDF file not found on server' });
+    }
+
+    const fileBuffer = fs.readFileSync(localPath);
+    const converted = await convertPdfToMarkdown(fileBuffer);
+
+    book.contentMarkdown = converted.contentMarkdown;
+    book.chapters = converted.chapters;
+    book.totalChapters = converted.totalChapters;
+    book.hasMarkdown = converted.chapters.length > 0;
+    await book.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Book converted to Markdown successfully!',
+      totalChapters: book.totalChapters
+    });
+  } catch (err) {
+    console.error('On-demand conversion error:', err);
+    res.status(500).json({ message: 'Conversion failed: ' + err.message });
+  }
+});
 
 /**
  * DELETE /api/books/:id

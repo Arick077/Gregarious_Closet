@@ -78,6 +78,23 @@ const bookSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  contentMarkdown: {
+    type: String,
+    default: null
+  },
+  hasMarkdown: {
+    type: Boolean,
+    default: false
+  },
+  chapters: [{
+    chapterNumber: { type: Number, required: true },
+    title: { type: String, required: true },
+    content: { type: String, required: true }
+  }],
+  totalChapters: {
+    type: Number,
+    default: 0
+  },
   uploadedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const Book = require('../models/Book');
 const { verifyToken, isAdmin } = require('../middleware/authMiddleware');
+const { convertPdfToMarkdown } = require('../utils/pdfConverter');
 
 // Ensure uploads directory exists safely across local and serverless environments
 const uploadDir = process.env.VERCEL 
@@ -96,6 +97,25 @@ router.post(
       const bookFileUrl = `/uploads/${bookFile.filename}`;
       const coverImageUrl = coverFile ? `/uploads/${coverFile.filename}` : (req.body.coverImage || null);
 
+      let markdownData = { contentMarkdown: null, chapters: [], totalChapters: 0, hasMarkdown: false };
+
+      if (fileExtension === 'pdf' && bookFile.path) {
+        try {
+          const fileBuffer = fs.readFileSync(bookFile.path);
+          const converted = await convertPdfToMarkdown(fileBuffer);
+          if (converted.chapters.length > 0) {
+            markdownData = {
+              contentMarkdown: converted.contentMarkdown,
+              chapters: converted.chapters,
+              totalChapters: converted.totalChapters,
+              hasMarkdown: true
+            };
+          }
+        } catch (err) {
+          console.warn('PDF parsing skipped or failed:', err.message);
+        }
+      }
+
       // Forcefully set isPublic: true for all admin uploads to feed the public library
       const newBook = new Book({
         title: title.trim(),
@@ -109,6 +129,10 @@ router.post(
         audioSampleUrl: req.body.audioSampleUrl ? req.body.audioSampleUrl.trim() : null,
         isPublic: true, // Forcefully set to true for public library feed
         uploadedBy: req.user._id,
+        contentMarkdown: markdownData.contentMarkdown,
+        chapters: markdownData.chapters,
+        totalChapters: markdownData.totalChapters,
+        hasMarkdown: markdownData.hasMarkdown,
         averageRating: req.body.averageRating ? Number(req.body.averageRating) : 0
       });
 
@@ -169,6 +193,21 @@ router.put(
         const fileExtension = path.extname(bookFile.originalname).replace('.', '').toLowerCase();
         book.fileUrl = `/uploads/${bookFile.filename}`;
         book.fileType = fileExtension;
+
+        if (fileExtension === 'pdf' && bookFile.path) {
+          try {
+            const fileBuffer = fs.readFileSync(bookFile.path);
+            const converted = await convertPdfToMarkdown(fileBuffer);
+            if (converted.chapters.length > 0) {
+              book.contentMarkdown = converted.contentMarkdown;
+              book.chapters = converted.chapters;
+              book.totalChapters = converted.totalChapters;
+              book.hasMarkdown = true;
+            }
+          } catch (err) {
+            console.warn('PDF parsing skipped or failed on admin edit:', err.message);
+          }
+        }
       }
 
       // If new cover was uploaded, replace coverImage

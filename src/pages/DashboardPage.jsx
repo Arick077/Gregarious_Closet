@@ -773,7 +773,7 @@ export default function DashboardPage() {
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <button
-                  onClick={() => setSelectedBookForView(featuredBook)}
+                  onClick={() => navigate(`/reader/${featuredBook._id}`)}
                   className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#C8A96A] to-[#B59659] hover:brightness-110 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-xl transition-all cursor-pointer transform hover:-translate-y-0.5"
                 >
                   <BookOpen size={17} />
@@ -1384,8 +1384,9 @@ export default function DashboardPage() {
 
                   <button
                     onClick={() => {
-                      alert(`Starting reader for "${selectedBookForView.title}"! Reader canvas is ready for integration.`);
+                      const targetId = selectedBookForView._id;
                       setSelectedBookForView(null);
+                      navigate(`/reader/${targetId}`);
                     }}
                     className="w-full py-3 bg-gradient-to-r from-[#C8A96A] to-[#B59659] hover:brightness-110 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >

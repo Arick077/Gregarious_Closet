@@ -3,6 +3,7 @@ import LandingPage from "./pages/LandingPage";
 import AuthPage from "./pages/AuthPage";
 import SignUpPage from "./pages/SignUp";
 import DashboardPage from "./pages/DashboardPage";
+import ReaderPage from "./pages/ReaderPage";
 function App() {
   return (
     <BrowserRouter>
@@ -12,6 +13,7 @@ function App() {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/reader/:bookId" element={<ReaderPage />} />
       </Routes>
     </BrowserRouter>
   );

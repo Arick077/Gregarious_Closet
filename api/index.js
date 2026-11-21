@@ -7,6 +7,7 @@ const bookRoutes = require('../src/server/routes/bookRoutes');
 const adminRoutes = require('../src/server/routes/adminRoutes');
 const commentRoutes = require('../src/server/routes/commentRoutes');
 const graphqlRoutes = require('../src/server/routes/graphqlRoutes');
+const readerRoutes = require('../src/server/routes/readerRoutes');
 
 const app = express();
 
@@ -55,6 +56,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', commentRoutes);
+app.use('/api/reader', readerRoutes);
 app.use('/graphql', graphqlRoutes);
 
 // Health check endpoint
